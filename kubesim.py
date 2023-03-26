@@ -92,7 +92,8 @@ apiVersion: kind.x-k8s.io/v1alpha4\n\
 nodes: \n"
 
 		for k in cluster:
-			s = s + "- role: " + cluster[k].role + "\n"
+			s = s + "- role: " + cluster[k].role + "\n  extraMounts:\n  - hostPath: /usr/bin/ping\n    containerPath: " \
+					+ "/usr/bin/ping\n"
 
 		configPath = "config/kubsim_cluster_"+name+".yaml"
 		with open(configPath,"w") as f:

@@ -20,7 +20,7 @@ from kubesim import KubeSim
 # import sys
 # sys.setprofile(tracefunc)
 
-setLogLevel('debug')
+setLogLevel('info')
 
 net = KubeSim(controller=Controller)
 info('*** Adding controller\n')
