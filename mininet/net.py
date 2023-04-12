@@ -109,7 +109,7 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            waitListening, BaseString )
 from mininet.term import cleanUpScreens, makeTerms
 
-from subprocess import Popen
+from subprocess import Popen, PIPE
 
 # Mininet version: should be consistent with README and LICENSE
 VERSION = "2.3.0d5"
@@ -1050,6 +1050,7 @@ class Containernet( Mininet ):
         # still provide any topo objects and init node lists
         Mininet.__init__(self, build=False, **params)
         self.SAPswitches = dict()
+        self.kindClusters = []
         if topo and dimage:
             self.buildFromTopo(topo, dimage)
 
@@ -1193,10 +1194,19 @@ class Containernet( Mininet ):
         super(Containernet, self).stop()
 
         info('*** Removing NAT rules of %i SAPs\n' % len(self.SAPswitches))
+        for cluster in self.kindClusters:
+            self.removeCluster(cluster)
         for SAPswitch in self.SAPswitches:
             self.removeSAPNAT(self.SAPswitches[SAPswitch])
         info("\n")
 
+    def removeCluster(self, cluster):
+        cmd = ["kind", "delete", "cluster", "--name", cluster]
+        popen = Popen(cmd, stdout=PIPE, stderr=PIPE)
+        # Warning: this can fail with large numbers of fds!
+        out, err = popen.communicate()
+        exitcode = popen.wait()
+        return cmd, out, err, exitcode
 
 
 class MininetWithControlNet( Mininet ):
