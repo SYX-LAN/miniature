@@ -20,6 +20,7 @@ class kubeCluster( Containernet ):
 			error("Cluster %s exists!" % name)
 			exit(0)
 		else:
+			self.kindClusters.append(name)
 			cluster = KubeSim()
 			self.clusters[name] = cluster
 			cluster.addKubeCluster(name, **params)
@@ -65,7 +66,7 @@ class KubeSim():
 			error("Cluster %s exists!" % name)
 		else:
 			self.clusterName = name
-		#TODO: support multiple cluster, now only 1 supported.
+		#support multiple cluster, now only 1 supported. finished
 		#TODO: deal with the config file
 
 	def addKubeNode(self, clusterName, name, **params):
