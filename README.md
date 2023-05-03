@@ -71,7 +71,7 @@ Experimental: **Ubuntu Linux 20.04 LTS** and **Python3**
 
 ```bash
 $ sudo apt-get install ansible git aptitude
-$ git clone https://github.com/violetbingzhe/miniature
+$ git clone https://github.com/SYX-LAN/miniature
 $ cd miniature/ansible
 $ sudo ansible-playbook -i "localhost," -c local install.yml
 $ cd ..
