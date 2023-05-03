@@ -9,8 +9,48 @@ from mininet.util import (ipAdd)
 
 from mininet.node import (KindNode)
 from subprocess import Popen, PIPE
+class kubeCluster( Containernet ):
+	def __init__(self, **params):
+		Containernet.__init__(self, **params)
+		self.clusters = {}
+		self.linksNotProcessed = []
 
-class KubeSim( Containernet ):
+	def addKubeCluster(self,  name, **params):
+		if name in self.clusters:
+			error("Cluster %s exists!" % name)
+			exit(0)
+		else:
+			self.kindClusters.append(name)
+			cluster = KubeSim()
+			self.clusters[name] = cluster
+			cluster.addKubeCluster(name, **params)
+			cluster.belonging = self
+		return cluster
+
+	def start(self):
+		if len(self.clusters) > 0:
+			# iterate over values
+			for cluster in self.clusters.values():
+				if len(cluster.kubeCluster) > 0:
+					cluster.boostKubeCluster()
+					for k in cluster.kubeCluster:
+						cluster.kubeCluster[k].init()
+		for l in self.linksNotProcessed:
+			Containernet.addLink(self, l[0], l[1], port1=l[2], port2=l[3], cls=l[4], **l[5])
+		Containernet.start(self)
+		for cluster in self.clusters.values():
+			for k in cluster.kubeCluster:
+				cluster.kubeCluster[k].bringIntfUp()
+				cluster.kubeCluster[k].setupKube()
+
+	def addLink( self, node1, node2, port1=None, port2=None,
+				 cls=None, **params ):
+		# delays to add link
+		self.linksNotProcessed.append((node1, node2, port1, port2, cls, params))
+
+
+
+class KubeSim():
 	def __init__(self, **params):
 		# call original Containernet.__init__
 		Containernet.__init__(self, **params)
@@ -19,13 +59,14 @@ class KubeSim( Containernet ):
 		self.clusterName = ""
 		self.numController = 0
 		self.numWorker = 0
+		self.belonging = None
 
 	def addKubeCluster(self, name, **params):
 		if name == self.clusterName:
 			error("Cluster %s exists!" % name)
 		else:
 			self.clusterName = name
-		#TODO: support multiple cluster, now only 1 supported.
+		#support multiple cluster, now only 1 supported. finished
 		#TODO: deal with the config file
 
 	def addKubeNode(self, clusterName, name, **params):
@@ -84,20 +125,20 @@ class KubeSim( Containernet ):
 		"""
 		This starts a stub class of KubeNode, and not start a container
 		"""
-		return self.addHost(name, cls=cls, **params)
+		return self.belonging.addHost(name, cls=cls, **params)
 
 	def generateKindConfig(self, name, cluster):
-		s = "kind: Cluster\n\
-apiVersion: kind.x-k8s.io/v1alpha4\n\
-nodes: \n"
-
-		for k in cluster:
-			s = s + "- role: " + cluster[k].role + "\n  extraMounts:\n  - hostPath: /usr/bin/ping\n    containerPath: " \
-					+ "/usr/bin/ping\n"
-
+# 		s = "kind: Cluster\n\
+# apiVersion: kind.x-k8s.io/v1alpha4\n\
+# nodes: \n"
+#
+# 		for k in cluster:
+# 			s = s + "- role: " + cluster[k].role + "\n  extraMounts:\n  - hostPath: /usr/bin/ping\n    containerPath: " \
+# 					+ "/usr/bin/ping\n"
+#
 		configPath = "config/kubsim_cluster_"+name+".yaml"
-		with open(configPath,"w") as f:
-			f.write(s)
+# 		with open(configPath,"w") as f:
+# 			f.write(s)
 
 		info("** Kind Config Created **\n")
 		return configPath
