@@ -106,6 +106,7 @@ class Intf( object ):
         # backgrounded output from the cli.
         ifconfig, _err, _exitCode = self.node.pexec(
             'ifconfig %s' % self.name )
+        # print('ifconfig:{}, err:{}, exitCode: {}'.format(ifconfig, _err,_exitCode))
         ips = self._ipMatchRegex.findall( ifconfig )
         self.ip = ips[ 0 ] if ips else None
         return self.ip

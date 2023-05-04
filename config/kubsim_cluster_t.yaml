@@ -4,8 +4,12 @@ nodes:
 - role: control-plane
   extraMounts:
   - hostPath: /usr/bin/ping
-    containerPath: /usr/bin/ping
+    containerPath: /bin/ping
+  - hostPath: /usr/sbin/ifconfig
+    containerPath: /sbin/ifconfig
 - role: worker
   extraMounts:
   - hostPath: /usr/bin/ping
-    containerPath: /usr/bin/ping
+    containerPath: /bin/ping
+  - hostPath: /usr/sbin/ifconfig
+    containerPath: /sbin/ifconfig
