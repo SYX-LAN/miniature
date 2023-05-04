@@ -884,7 +884,7 @@ class KindNode ( Host ):
         if not self._is_container_running():
             error( "ERROR: Can't connect to Container \'%s\'' for docker host \'%s\'!\n" % (self.did, self.name) )
             return
-        mncmd = ["docker", "exec", "-t", "%s.%s" % (self.cname)]
+        mncmd = ["docker", "exec", "-t", "%s" % (self.cname)]
         return Host.popen( self, *args, mncmd=mncmd, **kwargs )
 
     def cmd(self, *args, **kwargs ):
