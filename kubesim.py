@@ -76,7 +76,7 @@ class KubeSim():
 		else:
 			self.clusterName = name
 		#support multiple cluster, now only 1 supported. finished
-		#TODO: deal with the config file
+		#deal with the config file finished
 
 	def addKubeNode(self, clusterName, name, **params):
 		if params.get('type', "kind") != "kind":
@@ -140,7 +140,7 @@ class KubeSim():
 		#enforce certain resource limits
 		s = "kind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nnodes: \n"
 		extraMounts = "  extraMounts:\n  - hostPath: /usr/bin/ping\n    containerPath: " \
-							+ "/usr/bin/ping\n"
+							+ "/usr/bin/ping\n" + "  - hostPath: /usr/sbin/ifconfig\n    containerPath: /sbin/ifconfig\n"
 		control_plane_mode = '  kubeadmConfigPatches:\n  - |\n    kind: InitConfiguration\n    nodeRegistration:\n      kubeletExtraArgs:'
 		worker_mode = '  kubeadmConfigPatches:\n  - |\n    kind: JoinConfiguration\n    nodeRegistration:\n      kubeletExtraArgs:'
 
