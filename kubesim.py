@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import sys
 from mininet.net import Containernet
 from mininet.node import Controller
 from mininet.cli import CLI
@@ -9,6 +10,14 @@ from mininet.util import (ipAdd)
 
 from mininet.node import (KindNode)
 from subprocess import Popen, PIPE
+
+class kubeSimCLI( CLI ):
+	prompt = "miniature>"
+	
+	def __init__(self, mininet, stdin=sys.stdin, script=None):
+		super().__init__(mininet, stdin, script)
+		
+
 class kubeCluster( Containernet ):
 	def __init__(self, **params):
 		Containernet.__init__(self, **params)

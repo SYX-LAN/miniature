@@ -147,7 +147,7 @@ class CLI( Cmd ):
     def do_help( self, line ):
         "Describe available CLI commands."
         Cmd.do_help( self, line )
-        if line is '':
+        if line == '':
             output( self.helpStr )
 
     def do_nodes( self, _line ):
@@ -409,7 +409,6 @@ class CLI( Cmd ):
            automatically replaced with corresponding IP addrs."""
 
         first, args, line = self.parseline( line )
-
         if first in self.mn:
             if not args:
                 error( '*** Please enter a command for node: %s <cmd>\n'
@@ -417,12 +416,14 @@ class CLI( Cmd ):
                 return
             node = self.mn[ first ]
             rest = args.split( ' ' )
+            intf = self.mn[first].defaultIntf()
             # Substitute IP addresses for node names in command
             # If updateIP() returns None, then use node name
             rest = [ self.mn[ arg ].defaultIntf().updateIP() or arg
                      if arg in self.mn else arg
                      for arg in rest ]
             rest = ' '.join( rest )
+
             # Run cmd on node:
             node.sendCmd( rest )
             self.waitForNode( node )

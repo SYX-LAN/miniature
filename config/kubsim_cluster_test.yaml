@@ -1,5 +1,7 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  podSubnet: "10.122.0.0/16"
 nodes: 
 - role: control-plane
   kubeadmConfigPatches:
@@ -10,8 +12,12 @@ nodes:
         system-reserved: cpu=1
   extraMounts:
   - hostPath: /usr/bin/ping
-    containerPath: /usr/bin/ping
+    containerPath: /bin/ping
+  - hostPath: /usr/sbin/ifconfig
+    containerPath: /sbin/ifconfig
 - role: worker
   extraMounts:
   - hostPath: /usr/bin/ping
-    containerPath: /usr/bin/ping
+    containerPath: /bin/ping
+  - hostPath: /usr/sbin/ifconfig
+    containerPath: /sbin/ifconfig
