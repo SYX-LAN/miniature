@@ -4,6 +4,12 @@ networking:
   podSubnet: "10.122.0.0/16"
 nodes: 
 - role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        system-reserved: cpu=1
   extraMounts:
   - hostPath: /usr/bin/ping
     containerPath: /bin/ping

@@ -137,17 +137,50 @@ class KubeSim():
 		return self.belonging.addHost(name, cls=cls, **params)
 
 	def generateKindConfig(self, name, cluster):
-# 		s = "kind: Cluster\n\
-# apiVersion: kind.x-k8s.io/v1alpha4\n\
-# nodes: \n"
-#
-# 		for k in cluster:
-# 			s = s + "- role: " + cluster[k].role + "\n  extraMounts:\n  - hostPath: /usr/bin/ping\n    containerPath: " \
-# 					+ "/usr/bin/ping\n"
-#
-		configPath = "config/kubsim_cluster_"+name+".yaml"
-# 		with open(configPath,"w") as f:
-# 			f.write(s)
+		#enforce certain resource limits
+		s = "kind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nnodes: \n"
+		extraMounts = "  extraMounts:\n  - hostPath: /usr/bin/ping\n    containerPath: " \
+							+ "/usr/bin/ping\n"
+		control_plane_mode = '  kubeadmConfigPatches:\n  - |\n    kind: InitConfiguration\n    nodeRegistration:\n      kubeletExtraArgs:'
+		worker_mode = '  kubeadmConfigPatches:\n  - |\n    kind: JoinConfiguration\n    nodeRegistration:\n      kubeletExtraArgs:'
+
+		for k in cluster:
+			s = s + "- role: " + cluster[k].role + "\n"
+			kube_args = None
+			system_args = None
+
+			if cluster[k].kube_reserved_cpu is not None:
+				kube_args = "\n        kube-reserved: cpu=" + str(cluster[k].kube_reserved_cpu)
+			if cluster[k].kube_reserved_memory is not None:
+				if kube_args is None:
+					kube_args = "\n        kube-reserved: memory=" + str(cluster[k].kube_reserved_memory)
+				else:
+					kube_args += ", memory=" + str(cluster[k].kube_reserved_memory)
+
+			if cluster[k].system_reserved_cpu is not None:
+				system_args = "\n        system-reserved: cpu=" + str(cluster[k].system_reserved_cpu)
+			if cluster[k].system_reserved_memory is not None:
+				if system_args is None:
+					system_args = "\n        system-reserved: memory=" + str(cluster[k].system_reserved_memory)
+				else:
+					system_args += ", memory=" + str(cluster[k].system_reserved_memory)
+
+			if kube_args is not None or system_args is not None:
+				if cluster[k].role == 'worker':
+					s += worker_mode
+				else:
+					s += control_plane_mode
+				if kube_args is not None:
+					s += kube_args
+				if system_args is not None:
+					s += system_args
+				s += "\n"
+			s += extraMounts
+
+		configPath = "config/kubsim_cluster_" + name + ".yaml"
+
+		with open(configPath, "w") as f:
+			f.write(s)
 
 		info("** Kind Config Created **\n")
 		return configPath
@@ -160,7 +193,6 @@ class KubeSim():
 		if self.numController == 0:
 			error("No control plane for kubernetes cluster!")
 
-		 # TODO: enforce certain resource limits
 		configPath = self.generateKindConfig(self.clusterName, self.kubeCluster)
 
 		debug(self.pexec(["kind", "create", "cluster", "--name", self.clusterName, 

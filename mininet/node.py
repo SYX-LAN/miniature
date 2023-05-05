@@ -706,6 +706,11 @@ class KindNode ( Host ):
         self.name = name
         self.role = kwargs.get("role", "worker")
         self.cname = kwargs.get("cname", name)
+        # add resource limitations
+        self.system_reserved_cpu = kwargs.get("system_reserved_cpu", None)
+        self.system_reserved_memory = kwargs.get("system_reserved_memory", None)
+        self.kube_reserved_cpu = kwargs.get("kube_reserved_cpu", None)
+        self.kube_reserved_memory = kwargs.get("kube_reserved_memory", None)
         self.params = kwargs
 
     def init(self):
