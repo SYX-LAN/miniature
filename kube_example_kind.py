@@ -4,11 +4,12 @@ This is the most simple example to showcase Containernet.
 """
 from mininet.net import Containernet
 from mininet.node import Controller
-from mininet.cli import CLI
+# from mininet.cli import CLI
 from mininet.link import TCLink
 from mininet.log import info, setLogLevel
 from kubesim import KubeSim
 from kubesim import kubeCluster
+from kubesim import kubeSimCLI
 # def tracefunc(frame, event, arg, indent=[0]):
 #      if event == "call":
 #          indent[0] += 2
@@ -57,6 +58,6 @@ net.ping([k1, k2])
 # net.ping([k3, k4])
 # net.ping([k1, k3])
 info('*** Running CLI\n')
-CLI(net)
+kubeSimCLI(net)
 info('*** Stopping network')
 net.stop()
