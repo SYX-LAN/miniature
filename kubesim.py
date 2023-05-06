@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import sys
+import ipaddress
 from mininet.net import Containernet
 from mininet.node import Controller
 from mininet.cli import CLI
@@ -23,34 +24,40 @@ class kubeCluster( Containernet ):
 		Containernet.__init__(self, **params)
 		self.clusters = {}
 		self.linksNotProcessed = []
+		self.usedIP = []
 
-	def addKubeCluster(self,  name, **params):
+	def addKubeCluster(self,  name, minIP = '172.16.0.0', maxIP = '172.31.255.255', **params):
 		if name in self.clusters:
 			error("Cluster %s exists!" % name)
 			exit(0)
 		else:
+			if (ipaddress.ip_address(minIP) < ipaddress.ip_address('172.16.0.0')) or (
+				ipaddress.ip_address(maxIP) > ipaddress.ip_address('172.31.255.255')):
+				error("Custom IP range is out of classB internal IP range")
+				exit(0)
 			self.kindClusters.append(name)
 			cluster = KubeSim()
 			self.clusters[name] = cluster
-			cluster.addKubeCluster(name, **params)
+			cluster.addKubeCluster(name, minIP, maxIP, self.usedIP, **params)
 			cluster.belonging = self
+			cluster.useIP = self.usedIP
 		return cluster
 
 	def start(self):
 		if len(self.clusters) > 0:
 			# iterate over values
 			for cluster in self.clusters.values():
-				if len(cluster.kubeCluster) > 0:
+				if len(cluster.kubeNodes) > 0:
 					cluster.boostKubeCluster()
-					for k in cluster.kubeCluster:
-						cluster.kubeCluster[k].init()
+					for k in cluster.kubeNodes:
+						cluster.kubeNodes[k].init()
 		for l in self.linksNotProcessed:
 			Containernet.addLink(self, l[0], l[1], port1=l[2], port2=l[3], cls=l[4], **l[5])
 		Containernet.start(self)
 		for cluster in self.clusters.values():
-			for k in cluster.kubeCluster:
-				cluster.kubeCluster[k].bringIntfUp()
-				cluster.kubeCluster[k].setupKube()
+			for k in cluster.kubeNodes:
+				cluster.kubeNodes[k].bringIntfUp()
+				cluster.kubeNodes[k].setupKube()
 
 	def addLink( self, node1, node2, port1=None, port2=None,
 				 cls=None, **params ):
@@ -63,18 +70,25 @@ class KubeSim():
 	def __init__(self, **params):
 		# call original Containernet.__init__
 		Containernet.__init__(self, **params)
-		self.kubeCluster = {}
+		self.kubeNodes = {}
 		self.linksNotProcessed = []
 		self.clusterName = ""
 		self.numController = 0
 		self.numWorker = 0
 		self.belonging = None
+		self.minIP = ipaddress.ip_address('172.16.0.0')
+		self.maxIP = ipaddress.ip_address('172.31.255.255')
+		self.IPcounter = self.minIP
+		self.useIP = []
 
-	def addKubeCluster(self, name, **params):
+	def addKubeCluster(self, name, maxIP, minIP, usedIP, **params):
 		if name == self.clusterName:
 			error("Cluster %s exists!" % name)
 		else:
 			self.clusterName = name
+			self.minIP = minIP
+			self.maxIP = maxIP
+
 		#support multiple cluster, now only 1 supported. finished
 		#TODO: deal with the config file
 
@@ -101,18 +115,30 @@ class KubeSim():
 		# TODO: may need to have a sperate IP range than the default ones
 		# This IP now is not being used. 
 		# user-defined IP is not supported now. 
-
-		self.kubeCluster[name] = self._addKubeNode(name, **defaults)
-		return self.kubeCluster[name]
+		nodeIP = ''
+		while(true):
+			nodeIP = self.IPcounter
+			if nodeIP > maxIP:
+				error("Custom IP range used UP when adding node!")
+				exit(0)
+			if not (nodeIP in usedIP):
+				usedIP.append(nodeIP)
+				self.IPcounter += 1
+				break
+			else:
+				self.IPcounter += 1
+		nodeIP = str(nodeIP)
+		self.kubeNodes[name] = self._addKubeNode(name, nodeIP, **defaults)
+		return self.kubeNodes[name]
 
 	def start(self):
 		# deal with kind
 		# Now by default it's kind node, can integrate other kind of node. 
-		if len(self.kubeCluster) > 0:
+		if len(self.kubeNodes) > 0:
 		   self.boostKubeCluster()
 
-		for k in self.kubeCluster:
-			self.kubeCluster[k].init()
+		for k in self.kubeNodes:
+			self.kubeNodes[k].init()
 			# TODO:allowing to add sth other than kind?
 			# TODO: make sure the container ID and process ID is get
 
@@ -121,20 +147,20 @@ class KubeSim():
 
 		Containernet.start(self)
 
-		for k in self.kubeCluster:
-			self.kubeCluster[k].bringIntfUp()
-			self.kubeCluster[k].setupKube()
+		for k in self.kubeNodes:
+			self.kubeNodes[k].bringIntfUp()
+			self.kubeNodes[k].setupKube()
 
 	def addLink( self, node1, node2, port1=None, port2=None,
 				 cls=None, **params ):
 		# delays to add link 
 		self.linksNotProcessed.append((node1, node2, port1, port2, cls, params))
 
-	def _addKubeNode(self, name, cls=KindNode, **params):
+	def _addKubeNode(self, name, nodeIP, cls=KindNode, **params):
 		"""
 		This starts a stub class of KubeNode, and not start a container
 		"""
-		return self.belonging.addHost(name, cls=cls, **params)
+		return self.belonging.addHost(name, nodeIP, cls=cls, **params)
 
 	def generateKindConfig(self, name, cluster):
 		#enforce certain resource limits
@@ -193,7 +219,7 @@ class KubeSim():
 		if self.numController == 0:
 			error("No control plane for kubernetes cluster!")
 
-		configPath = self.generateKindConfig(self.clusterName, self.kubeCluster)
+		configPath = self.generateKindConfig(self.clusterName, self.kubeNodes)
 
 		debug(self.pexec(["kind", "create", "cluster", "--name", self.clusterName, 
 							"--config", configPath]))
