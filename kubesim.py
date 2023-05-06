@@ -78,16 +78,18 @@ class KubeSim():
 		self.belonging = None
 		self.minIP = ipaddress.ip_address('172.16.0.0')
 		self.maxIP = ipaddress.ip_address('172.31.255.255')
-		self.IPcounter = self.minIP
-		self.useIP = []
+		self.IPcounter = ipaddress.ip_address('172.16.0.0')
+		self.usedIP = []
 
-	def addKubeCluster(self, name, maxIP, minIP, usedIP, **params):
+	def addKubeCluster(self, name, minIP, maxIP, usedIP, **params):
 		if name == self.clusterName:
 			error("Cluster %s exists!" % name)
 		else:
 			self.clusterName = name
-			self.minIP = minIP
-			self.maxIP = maxIP
+			self.minIP = ipaddress.ip_address(minIP)
+			self.maxIP = ipaddress.ip_address(maxIP)
+			self.IPcounter = ipaddress.ip_address(minIP)
+			self.usedIP = usedIP
 
 		#support multiple cluster, now only 1 supported. finished
 		#TODO: deal with the config file
@@ -114,20 +116,19 @@ class KubeSim():
 
 		# TODO: may need to have a sperate IP range than the default ones
 		# This IP now is not being used. 
-		# user-defined IP is not supported now. 
-		nodeIP = ''
-		while(true):
-			nodeIP = self.IPcounter
-			if nodeIP > maxIP:
+		# user-defined IP is not supported now.
+
+		while(True):
+			if self.IPcounter > self.maxIP:
 				error("Custom IP range used UP when adding node!")
 				exit(0)
-			if not (nodeIP in usedIP):
-				usedIP.append(nodeIP)
+			if not (self.IPcounter in self.usedIP):
+				self.usedIP.append(self.IPcounter)
 				self.IPcounter += 1
 				break
 			else:
 				self.IPcounter += 1
-		nodeIP = str(nodeIP)
+		nodeIP = str(self.IPcounter)
 		self.kubeNodes[name] = self._addKubeNode(name, nodeIP, **defaults)
 		return self.kubeNodes[name]
 
@@ -160,7 +161,7 @@ class KubeSim():
 		"""
 		This starts a stub class of KubeNode, and not start a container
 		"""
-		return self.belonging.addHost(name, nodeIP, cls=cls, **params)
+		return self.belonging.addHost(name, cls=cls, **params)
 
 	def generateKindConfig(self, name, cluster):
 		#enforce certain resource limits
