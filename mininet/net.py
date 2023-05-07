@@ -226,6 +226,15 @@ class Mininet( object ):
            params: parameters for host
            returns: added host"""
         # Default IP and MAC addresses
+        """
+        if not nodeIP == None:
+            print("nodeIP = " + nodeIP)
+            print("self.nextIP = " + str(ipaddress.ip_address(self.ipBaseNum + self.nextIP)))
+            defaults = {'ip': ipAdd(self.nextIP,
+                                    ipBaseNum=int(ipaddress.IPv4Address(nodeIP)),
+                                    prefixLen=self.prefixLen) +
+                              '/%s' % self.prefixLen}
+        """
         defaults = { 'ip': ipAdd( self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen ) +

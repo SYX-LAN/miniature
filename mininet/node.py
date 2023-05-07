@@ -720,6 +720,7 @@ class KindNode ( Host ):
         ip = str(network_setting["IPAddress"])+"/"+str(network_setting["IPPrefixLen"])
 
         self.ip = ip
+        print(self.name + self.ip)
         self.did = self.cinfo.attrs["Id"]
 
         #if _is_container_running()
