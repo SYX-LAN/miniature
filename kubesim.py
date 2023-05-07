@@ -38,19 +38,36 @@ class kubeCluster( Containernet ):
 
 	def start(self):
 		if len(self.clusters) > 0:
-			# iterate over values
+			# iterate over values, first init nodes in cluster
 			for cluster in self.clusters.values():
 				if len(cluster.kubeCluster) > 0:
 					cluster.boostKubeCluster()
 					for k in cluster.kubeCluster:
 						cluster.kubeCluster[k].init()
+		# process links
 		for l in self.linksNotProcessed:
 			Containernet.addLink(self, l[0], l[1], port1=l[2], port2=l[3], cls=l[4], **l[5])
+
 		Containernet.start(self)
+
 		for cluster in self.clusters.values():
 			for k in cluster.kubeCluster:
 				cluster.kubeCluster[k].bringIntfUp()
 				cluster.kubeCluster[k].setupKube()
+				if cluster.kubeCluster[k].drop_rate is not None and cluster.kubeCluster[k].latency is not None:
+					cluster.kubeCluster[k].cmd('tc qdisc add dev {}-eth0 root netem delay {}ms loss {}%'.format(
+						cluster.kubeCluster[k].name,
+						cluster.kubeCluster[k].latency,
+						cluster.kubeCluster[k].drop_rate * 100))
+				elif cluster.kubeCluster[k].drop_rate is not None:
+					info('tc qdisc add dev eth0 root netem loss {}%'.format(cluster.kubeCluster[k].drop_rate * 100))
+					cluster.kubeCluster[k].cmd('tc qdisc add dev {}-eth0 root netem loss {}%'.format(
+						cluster.kubeCluster[k].name,
+						cluster.kubeCluster[k].drop_rate * 100))
+				elif cluster.kubeCluster[k].latency is not None:
+					cluster.kubeCluster[k].cmd('tc qdisc add dev {}-eth0 root netem delay {}ms'.format(
+						cluster.kubeCluster[k].name,
+						cluster.kubeCluster[k].latency))
 
 	def addLink( self, node1, node2, port1=None, port2=None,
 				 cls=None, **params ):
@@ -139,8 +156,13 @@ class KubeSim():
 	def generateKindConfig(self, name, cluster):
 		#enforce certain resource limits
 		s = "kind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nnodes: \n"
+		# mount extra packages in kind
 		extraMounts = "  extraMounts:\n  - hostPath: /usr/bin/ping\n    containerPath: " \
-							+ "/usr/bin/ping\n" + "  - hostPath: /usr/sbin/ifconfig\n    containerPath: /sbin/ifconfig\n"
+							+ "/usr/bin/ping\n" \
+					  		+ "  - hostPath: /usr/sbin/tc\n    containerPath: /usr/sbin/tc\n"
+					  		# + "  - hostPath: /usr/sbin/ifconfig\n    containerPath: /sbin/ifconfig\n" \
+							# + "  - hostPath: /usr/sbin/tc\n    containerPath: /usr/sbin/tc\n"
+
 		control_plane_mode = '  kubeadmConfigPatches:\n  - |\n    kind: InitConfiguration\n    nodeRegistration:\n      kubeletExtraArgs:'
 		worker_mode = '  kubeadmConfigPatches:\n  - |\n    kind: JoinConfiguration\n    nodeRegistration:\n      kubeletExtraArgs:'
 

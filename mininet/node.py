@@ -706,6 +706,11 @@ class KindNode ( Host ):
         self.name = name
         self.role = kwargs.get("role", "worker")
         self.cname = kwargs.get("cname", name)
+
+        # add network restriction
+        self.latency = kwargs.get('latency', None)
+        self.drop_rate = kwargs.get('drop_rate', None)
+
         # add resource limitations
         self.system_reserved_cpu = kwargs.get("system_reserved_cpu", None)
         self.system_reserved_memory = kwargs.get("system_reserved_memory", None)
