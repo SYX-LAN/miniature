@@ -219,7 +219,7 @@ class Mininet( object ):
         self.nextIP += 1
         return ip
 
-    def addHost( self, name, cls=None, **params ):
+    def addHost( self, name, nodeIP = None, isKind = False, cls=None, **params ):
         """Add host.
            name: name of host to add
            cls: custom host class/constructor (optional)
@@ -239,7 +239,10 @@ class Mininet( object ):
         defaults.update( params )
         if not cls:
             cls = self.host
-        h = cls( name, **defaults )
+        if isKind:
+            h = cls( name, nodeIP, **defaults )
+        else:
+            h = cls( name, **defaults )
         self.hosts.append( h )
         self.nameToNode[ name ] = h
         return h

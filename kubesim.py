@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import sys
+import ipaddress
 from mininet.net import Containernet
 from mininet.node import Controller
 from mininet.cli import CLI
@@ -86,8 +87,9 @@ class kubeCluster(Containernet):
         Containernet.__init__(self, **params)
         self.clusters = {}
         self.linksNotProcessed = []
+        self.usedIP = []
 
-    def addKubeCluster(self,  name, **params):
+    def addKubeCluster(self, name, minIP = '172.16.3.0', maxIP = '172.16.3.255', **params):
         if name in self.clusters:
             error("Cluster %s exists!" % name)
             exit(0)
@@ -95,7 +97,7 @@ class kubeCluster(Containernet):
             self.kindClusters.append(name)
             cluster = KubeSim()
             self.clusters[name] = cluster
-            cluster.addKubeCluster(name, **params)
+            cluster.addKubeCluster(name, minIP, maxIP, self.usedIP, **params)
             cluster.belonging = self
         return cluster
 
@@ -151,12 +153,20 @@ class KubeSim():
         self.numController = 0
         self.numWorker = 0
         self.belonging = None
+        self.minIP = ipaddress.ip_address('172.16.0.0')
+        self.maxIP = ipaddress.ip_address('172.31.255.255')
+        self.IPcounter = ipaddress.ip_address('172.16.0.0')
+        self.usedIP = []
 
-    def addKubeCluster(self, name, **params):
+    def addKubeCluster(self, name, minIP, maxIP, usedIP, **params):
         if name == self.clusterName:
             error("Cluster %s exists!" % name)
         else:
             self.clusterName = name
+            self.minIP = ipaddress.ip_address(minIP)
+            self.maxIP = ipaddress.ip_address(maxIP)
+            self.IPcounter = ipaddress.ip_address(minIP)
+            self.usedIP = usedIP
         # support multiple cluster, now only 1 supported. finished
         # deal with the config file finished
 
@@ -185,8 +195,18 @@ class KubeSim():
         # TODO: may need to have a sperate IP range than the default ones
         # This IP now is not being used.
         # user-defined IP is not supported now.
-
-        self.kubeCluster[name] = self._addKubeNode(name, **defaults)
+        while (True):
+            if self.IPcounter > self.maxIP:
+                error("Custom IP range used UP when adding node!")
+                exit(0)
+            if not (self.IPcounter in self.usedIP):
+                self.usedIP.append(self.IPcounter)
+                self.IPcounter += 1
+                break
+            else:
+                self.IPcounter += 1
+        nodeIP = str(self.IPcounter)
+        self.kubeCluster[name] = self._addKubeNode(name, nodeIP, **defaults)
         return self.kubeCluster[name]
 
     def start(self):
@@ -216,11 +236,15 @@ class KubeSim():
         self.linksNotProcessed.append(
             (node1, node2, port1, port2, cls, params))
 
-    def _addKubeNode(self, name, cls=KindNode, **params):
+    def _addKubeNode(self, name, nodeIP, cls=KindNode, **params):
         """
         This starts a stub class of KubeNode, and not start a container
         """
-        return self.belonging.addHost(name, cls=cls, **params)
+        if( cls == KindNode ):
+            isKind = True
+        else:
+            isKind = False
+        return self.belonging.addHost(name, nodeIP, isKind, cls=cls, **params)
 
     def generateKindConfig(self, name, cluster):
         # enforce certain resource limits

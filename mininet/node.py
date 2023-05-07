@@ -701,7 +701,7 @@ class KindNode (Host):
     """Node that represents a kubernetes node container.
     """
 
-    def __init__(self, name, dimage=None, dcmd=None, build_params={},
+    def __init__(self, name, nodeIP, dimage=None, dcmd=None, build_params={},
                  **kwargs):
         self.d_client = docker.from_env()
         self.dcli = self.d_client.api
@@ -720,6 +720,7 @@ class KindNode (Host):
         self.kube_reserved_cpu = kwargs.get("kube_reserved_cpu", None)
         self.kube_reserved_memory = kwargs.get("kube_reserved_memory", None)
         self.params = kwargs
+        self.nodeIP = nodeIP
 
     def init(self):
         self.cinfo = self.d_client.containers.get(self.cname)
