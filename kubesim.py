@@ -71,6 +71,7 @@ class kubeSimCLI(CLI):
                         rest.append(target.defaultIntf().updateIP())
                 else:
                     rest.append(arg)
+
             # Substitute IP addresses for node names in command
             # If updateIP() returns None, then use node name
             rest = ' '.join(rest)
@@ -189,7 +190,7 @@ class KubeSim():
         else:
             error("Unknown role %s!" % role)
 
-        defaults = {"cname": cname}
+        defaults = {"cname": cname, "cluster_name": clusterName}
         defaults.update(params)
 
         # TODO: may need to have a sperate IP range than the default ones

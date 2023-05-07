@@ -10,17 +10,6 @@ from mininet.log import info, setLogLevel
 from kubesim import KubeSim
 from kubesim import kubeCluster
 from kubesim import kubeSimCLI
-# def tracefunc(frame, event, arg, indent=[0]):
-#      if event == "call":
-#          indent[0] += 2
-#          print("-" * indent[0] + "> call function", frame.f_code.co_name)
-#      elif event == "return":
-#          print("<" + "-" * indent[0], "exit function", frame.f_code.co_name)
-#          indent[0] -= 2
-#      return tracefunc
-
-# import sys
-# sys.setprofile(tracefunc)
 
 setLogLevel('info')
 
